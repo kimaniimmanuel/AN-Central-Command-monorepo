@@ -133,6 +133,8 @@ export function TopNav({ user, wards, villages = [] }: Props) {
         ? 'wards'
         : pathname.startsWith('/voters')
           ? 'voters'
+          : pathname.startsWith('/reports')
+            ? 'reports'
           : pathname.startsWith('/analytics')
             ? 'analysis'
             : pathname.startsWith('/team') || pathname.startsWith('/meetings')
@@ -311,6 +313,11 @@ export function TopNav({ user, wards, villages = [] }: Props) {
           {/* Voters */}
           <Link href="/voters" className={topBtn('voters')}>
             Voters
+          </Link>
+
+          {/* Reports — intelligence & social listening hub */}
+          <Link href="/reports" className={topBtn('reports')}>
+            Reports
           </Link>
 
           {/* Polling Stations — by ward */}
@@ -508,6 +515,7 @@ export function TopNav({ user, wards, villages = [] }: Props) {
               </MobileSection>
 
               <MobileLink href="/voters" label="Voters" active={activeGroup === 'voters'} onNav={() => setMobileOpen(false)} />
+              <MobileLink href="/reports" label="📊 Reports & Listening" active={activeGroup === 'reports'} onNav={() => setMobileOpen(false)} />
 
               {/* Polling Stations accordion (by ward) */}
               <MobileSection
