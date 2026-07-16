@@ -167,6 +167,143 @@ export interface SourceStatus {
   note: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCOUNTS — the real public handles being monitored (candidate + opponents).
+// These links ARE real (provided by the campaign). The metrics/quotes tied to
+// them elsewhere in this file are still placeholder until ingestion is wired.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface AccountLink {
+  platform: Source;
+  url: string;
+}
+export interface MonitoredFigure {
+  id: string;
+  name: string;
+  tag: string;
+  side: 'ours' | 'opponent';
+  accounts: AccountLink[];
+  note?: string; // e.g. data-quality flags
+}
+
+export const MONITORED_FIGURES: MonitoredFigure[] = [
+  {
+    id: 'alfayo', name: 'Alfayo Nelson', tag: 'ALFAYO', side: 'ours',
+    accounts: [
+      { platform: 'facebook',  url: 'https://www.facebook.com/share/1DCU9qvPyv/' },
+      { platform: 'instagram', url: 'https://www.instagram.com/alfayo_kato' },
+      { platform: 'tiktok',    url: 'https://www.tiktok.com/@hon.nelsonalfayo' },
+      { platform: 'tiktok',    url: 'https://www.tiktok.com/@hon.alfayo.digita' },
+    ],
+  },
+  {
+    id: 'saido', name: 'Said Abdalla', tag: 'SAIDO', side: 'opponent',
+    accounts: [
+      { platform: 'facebook', url: 'https://www.facebook.com/share/1BYjJdKTh8/' },
+      { platform: 'tiktok',   url: 'https://www.tiktok.com/@hon.saidabdallasalim' },
+    ],
+  },
+  {
+    id: 'aa', name: 'Abdulswamad Ali', tag: 'AA', side: 'opponent',
+    accounts: [
+      { platform: 'facebook', url: 'https://www.facebook.com/share/1BYjJdKTh8/' },
+      { platform: 'tiktok',   url: 'https://www.tiktok.com/@hon.saidabdallasalim' },
+    ],
+    note: '⚠️ AA’s Facebook & TikTok links appear identical to SAIDO’s — likely a copy-paste mix-up. Please confirm AA’s real handles before we monitor.',
+  },
+  {
+    id: 'dekow', name: 'Abdikadir Dekow', tag: 'Dekow', side: 'opponent',
+    accounts: [
+      { platform: 'facebook', url: 'https://www.facebook.com/share/1DrFqrRNCn/' },
+      { platform: 'tiktok',   url: 'https://vt.tiktok.com/ZSXUNs9Yf/' },
+    ],
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DAILY REPORT — regenerated nightly at 00:00 (midnight) EAT.
+//
+// Per platform, a ranked "case" (most important → least). Each point has a short
+// headline for the in-app view and a wordy `detail` paragraph for the PDF, so the
+// download builds the argument while the screen stays scannable.
+// ─────────────────────────────────────────────────────────────────────────────
+export const REPORT_SCHEDULE = {
+  cron: '0 0 * * *',           // 00:00 daily
+  timezone: 'Africa/Nairobi',  // EAT (UTC+3)
+  label: 'Auto-refreshes daily at 12:00 midnight (EAT)',
+};
+
+export interface CasePoint {
+  rank: number;
+  weight: 'high' | 'medium' | 'low';
+  sentiment: Sentiment;
+  point: string;      // short — in-app
+  detail: string;     // wordy — PDF
+}
+
+export interface PlatformReport {
+  platform: Source;
+  label: string;
+  headline: string;
+  sentiment: SentimentSplit;
+  mentions: number;
+  casePoints: CasePoint[];
+}
+
+export const PLATFORM_REPORTS: PlatformReport[] = [
+  {
+    platform: 'whatsapp', label: 'WhatsApp',
+    headline: 'Ground groups are net-positive on presence but water complaints are hardening.',
+    sentiment: { praise: 240, neutral: 150, criticism: 96 }, mentions: 486,
+    casePoints: [
+      { rank: 1, weight: 'high', sentiment: 'criticism', point: 'Water & drainage complaints organising in Ziwa La Ng’ombe groups',
+        detail: 'Across ward WhatsApp groups the single most repeated grievance is water supply and post-rain drainage in Ziwa La Ng’ombe and parts of Frere Town. What makes this a priority rather than background noise is that residents are beginning to coordinate — sharing the same photos and tagging leaders — which is how a local grievance becomes a campaign liability. A concrete, dated response plan shared back into those groups would blunt it before opponents adopt it.' },
+      { rank: 2, weight: 'high', sentiment: 'praise', point: '“He shows up” is the dominant positive, contrasted against absent rivals',
+        detail: 'The strongest recurring praise is physical presence — cleanups, barazas, condolences. Members repeatedly frame it against opponents who “only appear during campaigns.” This is our most defensible advantage on WhatsApp and should be amplified with quick photo/video from every appearance, fed to members to reshare.' },
+      { rank: 3, weight: 'medium', sentiment: 'praise', point: 'Youth-jobs message is landing with young members',
+        detail: 'Younger members in Kongowea and Mkomani groups cite the youth programs as a real, tangible reason for support. This is a growth lane: pairing each event with a short “here’s who got placed” note would convert warm sentiment into shareable proof.' },
+      { rank: 4, weight: 'low', sentiment: 'neutral', point: 'General “wait and see” caution among undecideds',
+        detail: 'A steady undecided segment counsels patience — “let us see actions not talk.” Not hostile, but a reminder that promises without visible follow-through carry little weight here.' },
+    ],
+  },
+  {
+    platform: 'facebook', label: 'Facebook',
+    headline: 'Positive engagement on events; opponents pushing development-promise counter-narrative.',
+    sentiment: { praise: 190, neutral: 140, criticism: 78 }, mentions: 408,
+    casePoints: [
+      { rank: 1, weight: 'high', sentiment: 'praise', point: 'Event posts drawing strong positive reactions & shares',
+        detail: 'Posts tied to community events consistently out-perform generic posts on reactions and shares, and the comment tone is warm. The takeaway: Facebook rewards concrete activity, not slogans — every event should become a post within hours while sentiment is hot.' },
+      { rank: 2, weight: 'high', sentiment: 'criticism', point: 'SAIDO’s development-promise claim circulating in comments',
+        detail: 'A specific development-promise claim associated with SAIDO is being reshared in comment threads under both his and neutral pages. Left unanswered it sets the frame. A calm, factual rebuttal — ideally with our own delivery record — is worth publishing this week.' },
+      { rank: 3, weight: 'medium', sentiment: 'neutral', point: 'Roads in the interior raised as the deciding issue',
+        detail: 'Several Frere Town commenters name interior roads as their single vote-deciding issue. This is a persuadable bloc: a clear position and any visible progress on that corridor would move them.' },
+    ],
+  },
+  {
+    platform: 'tiktok', label: 'TikTok',
+    headline: 'Highest reach, youngest audience; tone is curious-neutral and highly swingable.',
+    sentiment: { praise: 120, neutral: 180, criticism: 44 }, mentions: 344,
+    casePoints: [
+      { rank: 1, weight: 'high', sentiment: 'neutral', point: 'Widest reach but least committed — the persuasion frontier',
+        detail: 'TikTok gives the largest raw reach and the youngest audience, but the tone is mostly curious-neutral rather than committed. That is exactly why it matters: this is where minds are still movable. Short, authentic clips (behind-the-scenes, youth voices) will do more here than polished ads.' },
+      { rank: 2, weight: 'medium', sentiment: 'praise', point: 'Authentic “on the ground” clips outperform staged content',
+        detail: 'The clips that travel are unpolished and real — the candidate actually present, doing something. Staged/formal content underperforms. Lean the content plan toward volume of authentic moments over production value.' },
+      { rank: 3, weight: 'low', sentiment: 'criticism', point: 'Opponent short-form (esp. SAIDO) gaining traction',
+        detail: 'SAIDO’s short-form is the most active among opponents and is picking up views. Not yet dominant, but worth a consistent posting cadence from our two accounts so we are not out-posted on the platform with the most undecideds.' },
+    ],
+  },
+  {
+    platform: 'instagram', label: 'Instagram',
+    headline: 'Smaller but warm audience; strongest on women-group and community-support content.',
+    sentiment: { praise: 62, neutral: 40, criticism: 23 }, mentions: 125,
+    casePoints: [
+      { rank: 1, weight: 'medium', sentiment: 'praise', point: 'Women-group & welfare support resonates most',
+        detail: 'The best-received Instagram content centres on women’s groups and welfare support, with appreciative comments. Smaller audience than TikTok/Facebook, but high-trust — a good channel to deepen loyalty with the women’s vote rather than chase raw reach.' },
+      { rank: 2, weight: 'low', sentiment: 'neutral', point: 'Consistency, not volume, is the current gap',
+        detail: 'Engagement is fine when we post; the issue is cadence. A simple twice-weekly rhythm would compound the warm base already there.' },
+    ],
+  },
+];
+
 export const SOURCE_STATUS: SourceStatus[] = [
   { source: 'whatsapp',  label: 'WhatsApp',  status: 'not_connected', note: 'Needs a decision on approach (official campaign number + member intake recommended). Group reading is not available via the official API.' },
   { source: 'facebook',  label: 'Facebook',  status: 'pending',       note: 'Alfayo’s own Page can connect via a Page token he authorizes (comments, reactions, feedback). Opponent pages need a listening tool.' },

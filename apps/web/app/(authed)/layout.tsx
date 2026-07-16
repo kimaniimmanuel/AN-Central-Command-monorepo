@@ -105,9 +105,12 @@ export default async function AuthedLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-darkBg">
-      <TopNav user={{ fullName: person.fullName, role: person.role, wardName }} wards={allWards} villages={allVillages} />
-      {/* SRS FR-090 — hero countdown strip, full-width below the main navbar. */}
-      <Countdown />
+      {/* print:hidden — the whole nav + countdown drop out when printing a report to PDF. */}
+      <div className="print:hidden">
+        <TopNav user={{ fullName: person.fullName, role: person.role, wardName }} wards={allWards} villages={allVillages} />
+        {/* SRS FR-090 — hero countdown strip, full-width below the main navbar. */}
+        <Countdown />
+      </div>
       {/* First-login nudge: still on the default (National ID) password. */}
       {mustChangePassword && (
         <div className="bg-brand-burnt/10 border-b border-brand-burnt/30">
@@ -133,7 +136,7 @@ export default async function AuthedLayout({ children }: { children: React.React
           {/* empty:hidden — on pages where both render null (e.g. Home) the row
               collapses instead of leaving a blank 12px gap on phones. Breadcrumbs
               are desktop-only; on phones the Back button + bottom nav orient you. */}
-          <div className="flex items-center gap-3 flex-wrap mb-3 empty:hidden">
+          <div className="print:hidden flex items-center gap-3 flex-wrap mb-3 empty:hidden">
             <BackButton />
             <span className="hidden sm:contents">
               <AutoBreadcrumbs />
@@ -143,14 +146,18 @@ export default async function AuthedLayout({ children }: { children: React.React
         </div>
         {/* Full-width per-page footer — the hero photo changes per route.
             See apps/web/components/site-footer.tsx for the route → image map. */}
-        <SiteFooter />
+        <div className="print:hidden">
+          <SiteFooter />
+        </div>
         {/* Reserve space on mobile so the fixed bottom nav never covers content. */}
-        <div className="h-20 md:hidden" aria-hidden />
+        <div className="h-20 md:hidden print:hidden" aria-hidden />
       </main>
       {/* Global quick-entry — log an activity from anywhere; flows into the system. */}
-      <QuickAdd wards={allWards} />
-      {/* Persistent mobile bottom navigation — always one tap back to safety. */}
-      <BottomNav />
+      <div className="print:hidden">
+        <QuickAdd wards={allWards} />
+        {/* Persistent mobile bottom navigation — always one tap back to safety. */}
+        <BottomNav />
+      </div>
     </div>
   );
 }

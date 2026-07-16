@@ -91,9 +91,11 @@ const TEAM_LINKS: SubLink[] = [
   { href: '/team?group=flames', label: 'Alfayo Flames' },
 ];
 
-const IMPORT_LINKS: SubLink[] = [
-  { href: '/data-import', label: 'Data Import' },
-  { href: '/audit', label: 'Audit Logs' },
+// "Data Centre" dropdown — the reporting + ingestion + audit trio.
+const DATA_CENTRE_LINKS: SubLink[] = [
+  { href: '/reports', label: '📊 Data Reports' },
+  { href: '/data-import', label: '⬆️ Data Import' },
+  { href: '/audit', label: '🧾 Data Audits' },
 ];
 
 // Per-ward quick links used in both the desktop mega-menu and mobile accordion.
@@ -133,14 +135,13 @@ export function TopNav({ user, wards, villages = [] }: Props) {
         ? 'wards'
         : pathname.startsWith('/voters')
           ? 'voters'
-          : pathname.startsWith('/reports')
-            ? 'reports'
           : pathname.startsWith('/analytics')
             ? 'analysis'
             : pathname.startsWith('/team') || pathname.startsWith('/meetings')
               ? 'team'
-              : pathname.startsWith('/data-import') || pathname.startsWith('/audit')
-                ? 'import'
+              // Data Centre groups Reports + Import + Audits under one menu.
+              : pathname.startsWith('/reports') || pathname.startsWith('/data-import') || pathname.startsWith('/audit')
+                ? 'data'
                 : '';
 
   // Close everything on route change.
@@ -315,11 +316,6 @@ export function TopNav({ user, wards, villages = [] }: Props) {
             Voters
           </Link>
 
-          {/* Reports — intelligence & social listening hub */}
-          <Link href="/reports" className={topBtn('reports')}>
-            Reports
-          </Link>
-
           {/* Polling Stations — by ward */}
           <DesktopDropdown
             label="Polling Stations"
@@ -356,17 +352,17 @@ export function TopNav({ user, wards, villages = [] }: Props) {
             topBtnClass={topBtn('team')}
           />
 
-          {/* Import (privileged) */}
+          {/* Data Centre (privileged) — Reports · Import · Audits */}
           {privileged && (
             <DesktopDropdown
-              label="Import"
-              group="import"
-              active={activeGroup === 'import'}
-              open={openMenu === 'import'}
-              onToggle={() => setOpenMenu((m) => (m === 'import' ? null : 'import'))}
-              links={IMPORT_LINKS}
+              label="Data Centre"
+              group="data"
+              active={activeGroup === 'data'}
+              open={openMenu === 'data'}
+              onToggle={() => setOpenMenu((m) => (m === 'data' ? null : 'data'))}
+              links={DATA_CENTRE_LINKS}
               pathname={pathname}
-              topBtnClass={topBtn('import')}
+              topBtnClass={topBtn('data')}
             />
           )}
         </nav>
@@ -515,7 +511,6 @@ export function TopNav({ user, wards, villages = [] }: Props) {
               </MobileSection>
 
               <MobileLink href="/voters" label="Voters" active={activeGroup === 'voters'} onNav={() => setMobileOpen(false)} />
-              <MobileLink href="/reports" label="📊 Reports & Listening" active={activeGroup === 'reports'} onNav={() => setMobileOpen(false)} />
 
               {/* Polling Stations accordion (by ward) */}
               <MobileSection
@@ -553,15 +548,15 @@ export function TopNav({ user, wards, villages = [] }: Props) {
                 ))}
               </MobileSection>
 
-              {/* Import accordion (privileged) */}
+              {/* Data Centre accordion (privileged) — Reports · Import · Audits */}
               {privileged && (
                 <MobileSection
-                  label="Import & Audit"
-                  active={activeGroup === 'import'}
-                  open={mobileSection === 'import'}
-                  onToggle={() => setMobileSection((s) => (s === 'import' ? null : 'import'))}
+                  label="Data Centre"
+                  active={activeGroup === 'data'}
+                  open={mobileSection === 'data'}
+                  onToggle={() => setMobileSection((s) => (s === 'data' ? null : 'data'))}
                 >
-                  {IMPORT_LINKS.map((s) => (
+                  {DATA_CENTRE_LINKS.map((s) => (
                     <MobileLink key={s.href} href={s.href} label={s.label} sub onNav={() => setMobileOpen(false)} />
                   ))}
                 </MobileSection>

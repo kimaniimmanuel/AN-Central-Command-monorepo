@@ -15,9 +15,13 @@ import {
   OUR_SHARE_OF_VOICE,
   NATIONAL_THREADS,
   SOURCE_STATUS,
+  PLATFORM_REPORTS,
+  REPORT_SCHEDULE,
+  MONITORED_FIGURES,
   type Sentiment,
   type Source,
 } from '@/data/intelligence-demo';
+import { ReportToolbar } from '@/components/report-toolbar';
 
 // /reports — Intelligence & Reports hub.
 //
@@ -32,8 +36,9 @@ import {
 
 export const runtime = 'nodejs';
 
-type Tab = 'overview' | 'debate' | 'voices' | 'network' | 'opponents' | 'sources';
+type Tab = 'daily' | 'overview' | 'debate' | 'voices' | 'network' | 'opponents' | 'sources';
 const TABS: { key: Tab; label: string }[] = [
+  { key: 'daily',     label: 'Daily Report' },
   { key: 'overview',  label: 'Overview' },
   { key: 'debate',    label: 'The Debate' },
   { key: 'voices',    label: 'Voices' },
@@ -67,7 +72,12 @@ interface PageProps {
 
 export default async function ReportsPage({ searchParams }: PageProps) {
   await getServerAuthOrRedirect();
-  const tab: Tab = (TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab : 'overview') as Tab;
+  const tab: Tab = (TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab : 'daily') as Tab;
+  // Server-stamped "generated" time — replaced by the real job's timestamp once
+  // the nightly generation writes to storage.
+  const generatedAt = new Date().toLocaleString('en-GB', {
+    timeZone: 'Africa/Nairobi', dateStyle: 'medium', timeStyle: 'short',
+  });
 
   const s = OVERVIEW.sentiment;
   const totalSent = s.praise + s.neutral + s.criticism;
@@ -122,12 +132,86 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         })}
       </nav>
 
+      {tab === 'daily'     && <DailyReport generatedAt={generatedAt} />}
       {tab === 'overview'  && <Overview praisePct={praisePct} />}
       {tab === 'debate'    && <Debate />}
       {tab === 'voices'    && <Voices />}
       {tab === 'network'   && <Network />}
       {tab === 'opponents' && <Opponents />}
       {tab === 'sources'   && <Sources />}
+    </div>
+  );
+}
+
+// ── Daily Report (per platform, ranked case) ────────────────────────────────
+const WEIGHT_STYLE = {
+  high:   { label: 'HIGH',   cls: 'bg-red-500/15 text-red-600' },
+  medium: { label: 'MEDIUM', cls: 'bg-amber-500/15 text-amber-600' },
+  low:    { label: 'LOW',    cls: 'bg-slate-500/15 text-slate-500' },
+} as const;
+
+function DailyReport({ generatedAt }: { generatedAt: string }) {
+  return (
+    <div className="space-y-5">
+      {/* Schedule + actions toolbar (client) */}
+      <ReportToolbar scheduleLabel={REPORT_SCHEDULE.label} generatedAt={generatedAt} />
+
+      {/* Notify note — delivery is in-app + notify; the push channel is pending. */}
+      <div className="rounded-xl border border-brand-teal/40 bg-brand-teal/5 px-4 py-2.5 text-xs sm:text-sm text-brand-textBody flex items-start gap-2">
+        <span>🔔</span>
+        <span>
+          When the nightly report is ready, Alfayo &amp; admins are notified in-app. External push
+          (WhatsApp/SMS/email) turns on once a messaging channel is connected — see the{' '}
+          <Link href="/reports?tab=sources" className="underline">Sources</Link> tab.
+        </span>
+      </div>
+
+      {PLATFORM_REPORTS.map((r) => {
+        const tot = r.sentiment.praise + r.sentiment.neutral + r.sentiment.criticism;
+        const praisePct = tot ? Math.round((r.sentiment.praise / tot) * 100) : 0;
+        return (
+          <div key={r.platform} className="rounded-xl border border-brand-border bg-brand-cardBg overflow-hidden">
+            {/* Platform header */}
+            <div className="flex items-start gap-3 border-b border-brand-border p-4">
+              <span className="text-2xl leading-none">{SOURCE_ICON[r.platform]}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-black text-brand-textActive">{r.label}</h3>
+                  <span className="text-[11px] text-brand-textMuted tabular-nums">{r.mentions.toLocaleString()} mentions</span>
+                </div>
+                <p className="text-sm text-brand-textBody mt-0.5">{r.headline}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-lg font-black text-emerald-600 tabular-nums leading-none">{praisePct}%</div>
+                <div className="text-[10px] uppercase tracking-wider text-brand-textMuted">praise</div>
+              </div>
+            </div>
+            {/* Ranked case points */}
+            <ol className="divide-y divide-brand-border/60">
+              {r.casePoints.map((c) => {
+                const w = WEIGHT_STYLE[c.weight];
+                const st = SENT_STYLE[c.sentiment];
+                return (
+                  <li key={c.rank} className="flex items-start gap-3 p-4">
+                    <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-burnt/15 text-brand-burnt text-xs font-black">{c.rank}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-brand-textActive">{c.point}</span>
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${w.cls}`}>{w.label}</span>
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${st.text}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}
+                        </span>
+                      </div>
+                      {/* Wordy detail — shown on screen too, but this is what the PDF leans on. */}
+                      <p className="mt-1 text-xs text-brand-textBody leading-relaxed">{c.detail}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -332,6 +416,9 @@ function Opponents() {
       <div className="grid md:grid-cols-3 gap-4">
         {OPPONENTS.map((o) => {
           const tot = o.sentiment.praise + o.sentiment.neutral + o.sentiment.criticism;
+          const figure = MONITORED_FIGURES.find((f) => f.id === o.id);
+          const fb = figure?.accounts.filter((a) => a.platform === 'facebook') ?? [];
+          const tk = figure?.accounts.filter((a) => a.platform === 'tiktok') ?? [];
           return (
             <div key={o.id} className="rounded-xl border border-brand-border bg-brand-cardBg p-4">
               <div className="flex items-center justify-between">
@@ -345,6 +432,25 @@ function Opponents() {
                 <div className="h-full bg-red-500" style={{ width: `${(o.sentiment.criticism / tot) * 100}%` }} />
               </div>
               <p className="mt-3 text-xs text-brand-textBody">{o.topLine}</p>
+
+              {/* Per-platform account links — where they're active */}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {fb.map((a, i) => (
+                  <a key={`fb${i}`} href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 text-blue-600 px-2 py-1 text-[11px] font-semibold hover:bg-blue-500/20 transition">
+                    🔵 Facebook ↗
+                  </a>
+                ))}
+                {tk.map((a, i) => (
+                  <a key={`tk${i}`} href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-black/10 text-brand-textActive px-2 py-1 text-[11px] font-semibold hover:bg-black/20 transition">
+                    ⚫ TikTok ↗
+                  </a>
+                ))}
+              </div>
+              {figure?.note && (
+                <p className="mt-2 text-[11px] text-amber-600 font-medium">{figure.note}</p>
+              )}
             </div>
           );
         })}
