@@ -22,6 +22,7 @@ import {
   type Source,
 } from '@/data/intelligence-demo';
 import { ReportToolbar } from '@/components/report-toolbar';
+import { isWhatsAppEnabled } from '@/lib/whatsapp';
 
 // /reports — Intelligence & Reports hub.
 //
@@ -138,7 +139,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       {tab === 'voices'    && <Voices />}
       {tab === 'network'   && <Network />}
       {tab === 'opponents' && <Opponents />}
-      {tab === 'sources'   && <Sources />}
+      {tab === 'sources'   && <Sources whatsappLive={isWhatsAppEnabled()} />}
     </div>
   );
 }
@@ -460,18 +461,31 @@ function Opponents() {
 }
 
 // ── Sources ─────────────────────────────────────────────────────────────────
-function Sources() {
+function Sources({ whatsappLive }: { whatsappLive: boolean }) {
   const STATUS_STYLE: Record<string, { label: string; cls: string }> = {
     connected:     { label: 'Connected',     cls: 'bg-emerald-500/15 text-emerald-600' },
     pending:       { label: 'Ready to connect', cls: 'bg-amber-500/15 text-amber-600' },
     not_connected: { label: 'Not connected', cls: 'bg-slate-500/15 text-slate-500' },
     restricted:    { label: 'Restricted',    cls: 'bg-red-500/15 text-red-600' },
   };
+  // WhatsApp row reflects the live env config: once the Cloud API keys are set,
+  // it flips to "connected". Others stay driven by the static status for now.
+  const rows = SOURCE_STATUS.map((s) =>
+    s.source === 'whatsapp'
+      ? {
+          ...s,
+          status: whatsappLive ? ('connected' as const) : ('pending' as const),
+          note: whatsappLive
+            ? 'Cloud API configured — campaign number can receive member reports and send alerts. (Does not read group chats.) Point the Meta webhook at /api/whatsapp/webhook.'
+            : 'Ready to wire: add the WhatsApp Cloud API keys to the environment, then register the webhook at /api/whatsapp/webhook. Receives member reports + sends alerts; does not read group chats.',
+        }
+      : s,
+  );
   return (
     <div className="space-y-5">
       <Panel title="Data sources" subtitle="What feeds these reports">
         <div className="space-y-2.5">
-          {SOURCE_STATUS.map((s) => {
+          {rows.map((s) => {
             const st = STATUS_STYLE[s.status];
             return (
               <div key={s.source} className="flex items-start gap-3 rounded-lg border border-brand-border bg-brand-darkBg/30 p-3">
