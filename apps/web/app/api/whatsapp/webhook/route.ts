@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db, whatsappIntake } from '@an/db';
 import {
   getWhatsAppConfig,
   verifyWebhookSignature,
@@ -18,9 +19,10 @@ export const dynamic = 'force-dynamic';
 // Public URL to register in Meta: https://<your-deployed-host>/api/whatsapp/webhook
 // (localhost won't receive Meta webhooks — use the Railway/Dokploy URL).
 //
-// Persistence of inbound messages into Data Reports is the NEXT slice — this
-// verifies the signature and parses messages so the pipe is proven first. For now
-// valid inbound messages are logged (PII-minimal) and acknowledged with 200.
+// Inbound messages are signature-verified, parsed, and persisted to whatsapp_intake
+// (idempotent on wa_message_id — Meta retries won't duplicate). They then surface
+// in Data Reports → Inbox. Meta requires a fast 200, so a storage hiccup still
+// ACKs (the message is logged) rather than triggering a retry storm.
 
 export async function GET(req: NextRequest) {
   const cfg = getWhatsAppConfig();
@@ -56,13 +58,33 @@ export async function POST(req: NextRequest) {
   }
 
   const messages = parseInboundMessages(payload);
+  let stored = 0;
   for (const m of messages) {
-    // PII-minimal log (matches the project's audit posture): who + type + when,
-    // not the message body. Real persistence into Data Reports lands next slice.
-    console.log(`[whatsapp] inbound ${m.type} from ${m.from} (${m.name ?? 'unknown'}) @ ${m.timestamp}`);
-    // TODO(next): persist as a report-intake row → surface in /reports.
+    if (!m.messageId || !m.from) continue;
+    try {
+      // Meta timestamps are unix seconds; guard against a missing/garbage value.
+      const secs = Number(m.timestamp);
+      const receivedAt = Number.isFinite(secs) && secs > 0 ? new Date(secs * 1000) : new Date();
+      const res = await db
+        .insert(whatsappIntake)
+        .values({
+          waMessageId: m.messageId,
+          fromNumber: m.from,
+          senderName: m.name,
+          body: m.text,
+          msgType: m.type,
+          receivedAt,
+          raw: payload as object,
+        })
+        .onConflictDoNothing({ target: whatsappIntake.waMessageId })
+        .returning({ id: whatsappIntake.id });
+      if (res.length > 0) stored += 1;
+    } catch (e) {
+      // PII-minimal error log; never block the 200 ACK on a storage hiccup.
+      console.error(`[whatsapp] failed to store ${m.messageId}:`, e instanceof Error ? e.message : e);
+    }
   }
 
   // Meta requires a fast 200; anything else triggers delivery retries.
-  return NextResponse.json({ ok: true, received: messages.length });
+  return NextResponse.json({ ok: true, received: messages.length, stored });
 }

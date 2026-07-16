@@ -26,3 +26,4 @@ export * from './supporters';
 export * from './election';
 export * from './voters';
 export * from './flames';
+export * from './whatsapp';

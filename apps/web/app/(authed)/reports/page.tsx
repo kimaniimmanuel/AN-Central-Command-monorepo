@@ -1,5 +1,8 @@
 import Link from 'next/link';
+import { desc } from 'drizzle-orm';
+import { whatsappIntake } from '@an/db';
 import { getServerAuthOrRedirect } from '@/lib/server-auth';
+import { withRlsTx } from '@/lib/api';
 import { Pie } from '@/components/charts/pie';
 import { HorizontalBarChart } from '@/components/charts/horizontal-bar';
 import {
@@ -37,9 +40,10 @@ import { isWhatsAppEnabled } from '@/lib/whatsapp';
 
 export const runtime = 'nodejs';
 
-type Tab = 'daily' | 'overview' | 'debate' | 'voices' | 'network' | 'opponents' | 'sources';
+type Tab = 'daily' | 'inbox' | 'overview' | 'debate' | 'voices' | 'network' | 'opponents' | 'sources';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'daily',     label: 'Daily Report' },
+  { key: 'inbox',     label: 'WhatsApp Inbox' },
   { key: 'overview',  label: 'Overview' },
   { key: 'debate',    label: 'The Debate' },
   { key: 'voices',    label: 'Voices' },
@@ -72,8 +76,14 @@ interface PageProps {
 }
 
 export default async function ReportsPage({ searchParams }: PageProps) {
-  await getServerAuthOrRedirect();
+  const claims = await getServerAuthOrRedirect();
   const tab: Tab = (TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab : 'daily') as Tab;
+
+  // Live WhatsApp member reports — only queried when the Inbox tab is open.
+  const inboxRows = tab === 'inbox'
+    ? await withRlsTx(claims, async (tx) =>
+        tx.select().from(whatsappIntake).orderBy(desc(whatsappIntake.receivedAt)).limit(50))
+    : [];
   // Server-stamped "generated" time — replaced by the real job's timestamp once
   // the nightly generation writes to storage.
   const generatedAt = new Date().toLocaleString('en-GB', {
@@ -134,12 +144,66 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       </nav>
 
       {tab === 'daily'     && <DailyReport generatedAt={generatedAt} />}
+      {tab === 'inbox'     && <Inbox rows={inboxRows} whatsappLive={isWhatsAppEnabled()} />}
       {tab === 'overview'  && <Overview praisePct={praisePct} />}
       {tab === 'debate'    && <Debate />}
       {tab === 'voices'    && <Voices />}
       {tab === 'network'   && <Network />}
       {tab === 'opponents' && <Opponents />}
       {tab === 'sources'   && <Sources whatsappLive={isWhatsAppEnabled()} />}
+    </div>
+  );
+}
+
+// ── WhatsApp Inbox (live member reports) ────────────────────────────────────
+interface InboxRow {
+  id: string;
+  fromNumber: string;
+  senderName: string | null;
+  body: string | null;
+  msgType: string;
+  receivedAt: Date;
+}
+
+function Inbox({ rows, whatsappLive }: { rows: InboxRow[]; whatsappLive: boolean }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-brand-teal/40 bg-brand-teal/5 px-4 py-3 text-xs sm:text-sm text-brand-textBody">
+        Messages your members send to the campaign WhatsApp number land here — the raw material
+        for the daily report. {whatsappLive
+          ? 'WhatsApp is connected; new messages appear automatically.'
+          : 'WhatsApp isn’t connected yet — this fills once the Cloud API keys + webhook are live (see the Sources tab).'}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-brand-border bg-brand-cardBgHeavy/40 px-4 py-10 text-center">
+          <div className="text-3xl mb-2">📥</div>
+          <p className="text-sm font-semibold text-brand-textActive">No member reports yet</p>
+          <p className="text-xs text-brand-textMuted mt-1 max-w-md mx-auto">
+            When a member messages the campaign number, it shows here with their name, number, and
+            what they said — ready to roll into the nightly report.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {rows.map((m) => (
+            <div key={m.id} className="rounded-lg border border-brand-border bg-brand-darkBg/30 p-3">
+              <div className="flex items-center gap-2 mb-1 text-xs flex-wrap">
+                <span>🟢</span>
+                <span className="font-semibold text-brand-textActive">{m.senderName ?? 'Unknown'}</span>
+                <span className="text-brand-textMuted tabular-nums">+{m.fromNumber}</span>
+                {m.msgType !== 'text' && (
+                  <span className="rounded bg-brand-burnt/15 text-brand-burnt px-1.5 py-0.5 text-[10px] font-bold uppercase">{m.msgType}</span>
+                )}
+                <span className="text-brand-textMuted ml-auto">
+                  {m.receivedAt.toLocaleString('en-GB', { timeZone: 'Africa/Nairobi', dateStyle: 'short', timeStyle: 'short' })}
+                </span>
+              </div>
+              <p className="text-sm text-brand-textBody">{m.body ?? <span className="italic text-brand-textMuted">(non-text message)</span>}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
