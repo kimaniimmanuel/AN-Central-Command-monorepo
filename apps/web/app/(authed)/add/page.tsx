@@ -39,10 +39,9 @@ export default async function AddPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold text-brand-textActive">Add to the map</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-textActive">Add to the map</h1>
         <p className="text-sm text-brand-textMuted">
-          Pick what you want to add, fill the few required boxes, and tap Save. It appears
-          in the list below straight away — no spreadsheet needed.
+          Pick a type, fill the required boxes, tap Save.
         </p>
       </header>
 

@@ -460,14 +460,23 @@ export function TopNav({ user, wards, villages = [] }: Props) {
                     <button
                       type="button"
                       onClick={() => setMobileWard((x) => (x === w.id ? null : w.id))}
-                      className="w-full flex items-center justify-between pl-7 pr-4 py-2.5 text-sm font-semibold text-brand-textActive hover:bg-black/5"
+                      className={[
+                        'w-full flex items-center justify-between pl-7 pr-4 py-2.5 text-sm font-semibold transition',
+                        mobileWard === w.id
+                          ? 'bg-brand-burnt/10 text-brand-burnt'
+                          : 'text-brand-textActive hover:bg-black/5',
+                      ].join(' ')}
                     >
                       {w.name} <Caret open={mobileWard === w.id} />
                     </button>
-                    {mobileWard === w.id &&
-                      wardLinks(w.id).map((s) => (
-                        <MobileLink key={s.href} href={s.href} label={s.label} deep onNav={() => setMobileOpen(false)} />
-                      ))}
+                    {/* Second nesting level — its own tint, one step deeper. */}
+                    {mobileWard === w.id && (
+                      <div className="bg-brand-burnt/5 border-y border-brand-border/60">
+                        {wardLinks(w.id).map((s) => (
+                          <MobileLink key={s.href} href={s.href} label={s.label} deep onNav={() => setMobileOpen(false)} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </MobileSection>
@@ -661,14 +670,22 @@ function MobileSection({
         aria-expanded={open}
         className={[
           'w-full flex items-center justify-between px-4 py-3 text-sm border-l-2 transition',
-          active
-            ? 'border-l-brand-burnt text-brand-burnt font-semibold'
-            : 'border-l-transparent text-brand-textBody hover:bg-black/5 hover:text-brand-textActive',
+          open
+            ? 'border-l-brand-burnt bg-brand-burnt/15 text-brand-burnt font-bold'
+            : active
+              ? 'border-l-brand-burnt text-brand-burnt font-semibold'
+              : 'border-l-transparent text-brand-textBody hover:bg-black/5 hover:text-brand-textActive',
         ].join(' ')}
       >
         {label} <Caret open={open} />
       </button>
-      {open && <div className="bg-brand-cardBgHeavy/60">{children}</div>}
+      {/* Open panel gets a clearly different background than the cream drawer so
+          the dropdown's items read as one block belonging to the header above. */}
+      {open && (
+        <div className="bg-white border-y border-brand-border border-l-2 border-l-brand-burnt shadow-inner">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

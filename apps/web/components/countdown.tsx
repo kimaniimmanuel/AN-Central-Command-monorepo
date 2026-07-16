@@ -127,7 +127,19 @@ export function Countdown() {
 
   return (
     <div className="w-full border-b border-brand-border bg-gradient-to-r from-brand-burnt/10 via-brand-gold/10 to-brand-teal/10">
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-3 md:py-5">
+      {/* Phone: slim one-line ticker — the big grid eats a third of a small screen
+          on EVERY page, so mobile gets months + days only, in one compact strip. */}
+      <div className="md:hidden flex items-center justify-center gap-2 px-3 py-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full ${urgent ? 'bg-brand-rust' : 'bg-brand-burnt'} animate-pulse`} />
+        <span className="text-[11px] font-black uppercase tracking-[0.14em] text-brand-textActive whitespace-nowrap">
+          {parts.months > 0 && <>{parts.months} mo · </>}
+          {parts.days} d{parts.months === 0 && <> · {String(parts.hours).padStart(2, '0')}:{String(parts.mins).padStart(2, '0')}</>} to election
+        </span>
+        <span className="text-[10px] font-semibold text-brand-textMuted whitespace-nowrap">9 Aug 2027</span>
+      </div>
+
+      {/* Desktop / tablet: the full hero grid. */}
+      <div className="hidden md:block max-w-4xl mx-auto px-2 sm:px-4 py-3 md:py-5">
         {/* Eyebrow */}
         <div className="flex items-center justify-center gap-2 mb-2 md:mb-3">
           <span className="w-2 h-2 rounded-full bg-brand-burnt animate-pulse" />

@@ -321,24 +321,26 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       {/* ── Bold gradient hero banner ──────────────────────────────────── */}
-      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-burnt via-brand-rust to-brand-teal p-6 sm:p-8 shadow-xl">
+      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-burnt via-brand-rust to-brand-teal p-4 sm:p-8 shadow-xl">
         {/* decorative gold glow */}
         <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full bg-brand-gold/20 blur-3xl pointer-events-none" />
         <div className="relative space-y-2">
-          <div className="text-[11px] font-bold uppercase tracking-[0.4em] text-white/80">
+          <div className="hidden sm:block text-[11px] font-bold uppercase tracking-[0.4em] text-white/80">
             Welcome to
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black text-white uppercase tracking-tight leading-tight drop-shadow">
+          <h1 className="text-xl sm:text-3xl lg:text-5xl font-black text-white uppercase tracking-tight leading-tight drop-shadow">
             ALFAYO <span className="text-brand-gold">CENTRAL COMMAND</span>
           </h1>
-          <p className="text-sm sm:text-base text-white/90 font-semibold uppercase tracking-wide leading-snug max-w-3xl">
+          {/* Mission statement is desktop copy — phones go straight to the actions. */}
+          <p className="hidden sm:block text-sm sm:text-base text-white/90 font-semibold uppercase tracking-wide leading-snug max-w-3xl">
             Where we view Nyali data and analyze it to establish a{' '}
             <span className="text-brand-gold">victory for Alfayo Nelson</span> in the{' '}
             <span className="text-white underline decoration-brand-gold decoration-2 underline-offset-2">2027 Nyali race</span>.
           </p>
-          <div className="flex flex-wrap gap-2 pt-3">
+          {/* Phones: one swipeable row (no wrap = no tall pile of chips). */}
+          <div className="flex gap-2 pt-2 sm:pt-3 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <HeroChip href="/meetings?action=new" solid>+ Schedule meeting</HeroChip>
             <HeroChip href="/voters">Search voters</HeroChip>
             <HeroChip href="/wards">Browse wards</HeroChip>
@@ -643,7 +645,7 @@ function HeroChip({
     ? 'bg-brand-gold text-black hover:bg-white'
     : 'bg-white/15 text-white border border-white/30 backdrop-blur hover:bg-white/25';
   return (
-    <Link href={href} className={`text-xs font-bold px-3 py-1.5 rounded-full transition ${cls}`}>
+    <Link href={href} className={`shrink-0 whitespace-nowrap text-xs font-bold px-3 py-1.5 rounded-full transition ${cls}`}>
       {children}
     </Link>
   );

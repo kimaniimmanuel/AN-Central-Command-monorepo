@@ -113,22 +113,31 @@ export default async function AuthedLayout({ children }: { children: React.React
         <div className="bg-brand-burnt/10 border-b border-brand-burnt/30">
           <div className="max-w-[1600px] mx-auto px-4 lg:px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
             <span className="text-sm font-semibold text-brand-burnt">
-              🔑 You&apos;re still using your default password (your National ID). Please set a new one.
+              {/* Phones get the short version — same message, half the words. */}
+              <span className="sm:hidden">🔑 Set a new password</span>
+              <span className="hidden sm:inline">
+                🔑 You&apos;re still using your default password (your National ID). Please set a new one.
+              </span>
             </span>
             <Link
               href="/account/password"
               className="shrink-0 rounded-lg bg-brand-burnt px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-rust transition"
             >
-              Change password →
+              Change →
             </Link>
           </div>
         </div>
       )}
       <main className="flex-1 overflow-auto">
         <div className="max-w-[1600px] mx-auto p-4 lg:p-6">
-          <div className="flex items-center gap-3 flex-wrap mb-3">
+          {/* empty:hidden — on pages where both render null (e.g. Home) the row
+              collapses instead of leaving a blank 12px gap on phones. Breadcrumbs
+              are desktop-only; on phones the Back button + bottom nav orient you. */}
+          <div className="flex items-center gap-3 flex-wrap mb-3 empty:hidden">
             <BackButton />
-            <AutoBreadcrumbs />
+            <span className="hidden sm:contents">
+              <AutoBreadcrumbs />
+            </span>
           </div>
           {children}
         </div>
